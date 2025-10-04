@@ -1,0 +1,72 @@
+name: 'bangkok_aqi'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'bangkok_aqi'
+
+# These configurations specify where dbt should look for different types of files.
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Configuring models
+models:
+  bangkok_aqi:
+    +materialized: table
+    +on_schema_change: fail
+    
+    # Source/staging models
+    sources:
+      +materialized: view
+      +schema: staging
+    
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags: ["staging"]
+    
+    # Marts (dimensional models)
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags: ["marts", "production"]
+      
+      dimensions:
+        +materialized: table
+      
+      facts:
+        +materialized: incremental
+        +on_schema_change: fail
+        +unique_key: event_hour
+      
+      aggregates:
+        +materialized: table
+
+# Seeds configuration
+seeds:
+  bangkok_aqi:
+    +schema: seeds
+
+# Tests
+tests:
+  bangkok_aqi:
+    +store_failures: true
+    +schema: test_results
+
+# Documentation
+docs-paths: ["docs"]
+
+# Timezone configuration
+vars:
+  timezone: 'Asia/Bangkok'
+  execution_date: "{{ var('execution_date', run_started_at.strftime('%Y-%m-%d')) }}"
+  execution_hour: "{{ var('execution_hour', run_started_at.strftime('%H')) }}"

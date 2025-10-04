@@ -1,0 +1,104 @@
+version: 2
+
+sources:
+  - name: staging
+    description: "Staging tables from Spark cleanse job"
+    database: "{{ env_var('GCP_PROJECT_ID') }}"
+    schema: staging_aqi
+    
+    tables:
+      - name: weather_hourly
+        description: "Hourly weather observations from Open-Meteo"
+        identifier: weather_hourly
+        
+        columns:
+          - name: event_hour
+            description: "Event timestamp at hourly grain (partition key)"
+            tests:
+              - not_null
+          
+          - name: latitude
+            description: "Location latitude"
+          
+          - name: longitude
+            description: "Location longitude"
+          
+          - name: temperature_2m
+            description: "Temperature at 2 meters in Celsius"
+            tests:
+              - not_null
+          
+          - name: relative_humidity_2m
+            description: "Relative humidity at 2 meters (%)"
+          
+          - name: precipitation
+            description: "Precipitation in mm"
+          
+          - name: wind_speed_10m
+            description: "Wind speed at 10 meters (m/s)"
+          
+          - name: wind_direction_10m
+            description: "Wind direction at 10 meters (degrees)"
+          
+          - name: source
+            description: "Data source identifier"
+          
+          - name: ingested_at
+            description: "Timestamp when data was ingested"
+            tests:
+              - not_null
+      
+      - name: aqi_hourly
+        description: "Hourly air quality measurements from Open-Meteo"
+        identifier: aqi_hourly
+        
+        columns:
+          - name: event_hour
+            description: "Event timestamp at hourly grain (partition key)"
+            tests:
+              - not_null
+          
+          - name: latitude
+            description: "Location latitude"
+          
+          - name: longitude
+            description: "Location longitude"
+          
+          - name: pm10
+            description: "Particulate matter 10 micrometers (µg/m³)"
+          
+          - name: pm2_5
+            description: "Particulate matter 2.5 micrometers (µg/m³)"
+            tests:
+              - not_null
+          
+          - name: carbon_monoxide
+            description: "Carbon monoxide concentration"
+          
+          - name: nitrogen_dioxide
+            description: "Nitrogen dioxide concentration"
+          
+          - name: sulphur_dioxide
+            description: "Sulphur dioxide concentration"
+          
+          - name: ozone
+            description: "Ozone concentration"
+          
+          - name: us_aqi
+            description: "US EPA Air Quality Index"
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 500
+                  inclusive: true
+          
+          - name: european_aqi
+            description: "European Air Quality Index"
+          
+          - name: source
+            description: "Data source identifier"
+          
+          - name: ingested_at
+            description: "Timestamp when data was ingested"
+            tests:
+              - not_null

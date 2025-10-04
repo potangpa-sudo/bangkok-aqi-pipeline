@@ -1,0 +1,28 @@
+{
+  "reference": {
+    "project_id": "your-project-id"
+  },
+  "placement": {
+    "cluster_name": ""
+  },
+  "pyspark_job": {
+    "main_python_file_uri": "gs://bangkok-aqi-raw/spark/cleanse.py",
+    "args": [
+      "--project_id", "your-project-id",
+      "--raw_bucket", "bangkok-aqi-raw",
+      "--quar_bucket", "bangkok-aqi-quarantine",
+      "--partition_date", "2025-10-05",
+      "--partition_hour", "14"
+    ],
+    "python_file_uris": [],
+    "jar_file_uris": [],
+    "file_uris": [],
+    "properties": {
+      "spark.executor.instances": "2",
+      "spark.driver.memory": "2g",
+      "spark.executor.memory": "2g",
+      "spark.executor.cores": "2",
+      "spark.dynamicAllocation.enabled": "true"
+    }
+  }
+}

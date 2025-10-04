@@ -1,0 +1,37 @@
+# Bangkok AQI Pipeline - Terraform Variables
+# Copy this file to terraform.tfvars and fill in your values
+
+project_id = "your-gcp-project-id"
+region     = "asia-southeast1"
+zone       = "asia-southeast1-a"
+
+# BigQuery
+bq_location        = "asia-southeast1"
+bq_dataset_staging = "staging_aqi"
+bq_dataset_marts   = "marts_aqi"
+
+# GCS Buckets (must be globally unique)
+gcs_bucket_raw        = "your-project-bangkok-aqi-raw"
+gcs_bucket_quarantine = "your-project-bangkok-aqi-quarantine"
+
+# Pub/Sub
+pubsub_topic     = "aqi-raw-landed"
+pubsub_dlq_topic = "aqi-raw-dlq"
+
+# Cloud Run
+ingestor_service_name  = "aqi-ingestor"
+dashboard_service_name = "aqi-dashboard"
+
+# Cloud Composer
+composer_env_name = "bangkok-aqi-composer"
+composer_location = "asia-southeast1"
+
+# Environment
+environment = "dev"
+
+# Labels
+labels = {
+  project    = "bangkok-aqi"
+  managed_by = "terraform"
+  env        = "dev"
+}

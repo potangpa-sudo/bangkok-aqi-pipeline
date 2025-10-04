@@ -1,0 +1,35 @@
+bangkok_aqi:
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT_ID') }}"
+      dataset: staging_aqi
+      threads: 4
+      timeout_seconds: 300
+      location: asia-southeast1
+      priority: interactive
+      keyfile: "{{ env_var('DBT_SERVICE_ACCOUNT_PATH', '/path/to/keyfile.json') }}"
+      
+    prod:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT_ID') }}"
+      dataset: marts_aqi
+      threads: 4
+      timeout_seconds: 300
+      location: asia-southeast1
+      priority: interactive
+      keyfile: "{{ env_var('DBT_SERVICE_ACCOUNT_PATH', '/path/to/keyfile.json') }}"
+      
+    ci:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('GCP_PROJECT_ID') }}"
+      dataset: staging_aqi_ci
+      threads: 2
+      timeout_seconds: 300
+      location: asia-southeast1
+      priority: interactive
+
+  target: dev

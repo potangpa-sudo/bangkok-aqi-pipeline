@@ -1,0 +1,109 @@
+version: 2
+
+models:
+  - name: stg_weather
+    description: "Staging view for weather data with light transformations"
+    columns:
+      - name: event_hour
+        description: "Event timestamp at hourly grain"
+        tests:
+          - not_null
+          - unique
+      
+      - name: temperature_celsius
+        description: "Temperature in Celsius (rounded to 2 decimals)"
+        tests:
+          - not_null
+      
+      - name: is_temperature_anomaly
+        description: "Flag for temperature anomalies (out of range or null)"
+  
+  - name: stg_aqi
+    description: "Staging view for air quality data with light transformations"
+    columns:
+      - name: event_hour
+        description: "Event timestamp at hourly grain"
+        tests:
+          - not_null
+          - unique
+      
+      - name: pm2_5
+        description: "PM2.5 concentration in µg/m³"
+        tests:
+          - not_null
+      
+      - name: us_aqi
+        description: "US EPA Air Quality Index"
+        tests:
+          - accepted_values:
+              values: [0, 50, 100, 150, 200, 300, 500]
+              quote: false
+              config:
+                severity: warn
+                where: "us_aqi IS NOT NULL"
+      
+      - name: us_aqi_category
+        description: "US AQI category label"
+        tests:
+          - accepted_values:
+              values: ['Good', 'Moderate', 'Unhealthy for Sensitive Groups', 'Unhealthy', 'Very Unhealthy', 'Hazardous', 'Unknown']
+
+models:
+  - name: dim_datetime
+    description: "Datetime dimension at hourly grain"
+    columns:
+      - name: event_hour
+        description: "Primary key - event timestamp at hourly grain"
+        tests:
+          - not_null
+          - unique
+      
+      - name: date_local
+        description: "Date component in Asia/Bangkok timezone"
+        tests:
+          - not_null
+  
+  - name: fact_aqi_hourly
+    description: "Hourly fact table combining weather and air quality"
+    columns:
+      - name: event_hour
+        description: "Primary key - event timestamp at hourly grain"
+        tests:
+          - not_null
+          - unique
+      
+      - name: pm2_5
+        description: "PM2.5 concentration"
+        tests:
+          - not_null
+      
+      - name: us_aqi_category
+        description: "US AQI category"
+        tests:
+          - not_null
+  
+  - name: mart_daily_aqi_weather
+    description: "Daily aggregate mart for air quality and weather analytics"
+    columns:
+      - name: date
+        description: "Primary key - date"
+        tests:
+          - not_null
+          - unique
+      
+      - name: hours_observed
+        description: "Number of hours with data"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0 AND <= 24"
+      
+      - name: avg_pm2_5
+        description: "Daily average PM2.5"
+        tests:
+          - not_null
+      
+      - name: avg_temperature_c
+        description: "Daily average temperature in Celsius"
+        tests:
+          - not_null
