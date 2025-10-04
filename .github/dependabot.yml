@@ -1,0 +1,66 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "potangpa-sudo"
+    labels:
+      - "dependencies"
+      - "python"
+    open-pull-requests-limit: 10
+    
+  - package-ecosystem: "pip"
+    directory: "/src/ingestor"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "potangpa-sudo"
+    labels:
+      - "dependencies"
+      - "component: ingestor"
+    
+  - package-ecosystem: "pip"
+    directory: "/app"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "potangpa-sudo"
+    labels:
+      - "dependencies"
+      - "component: dashboard"
+    
+  - package-ecosystem: "pip"
+    directory: "/dbt"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "potangpa-sudo"
+    labels:
+      - "dependencies"
+      - "component: dbt"
+  
+  # Terraform dependencies
+  - package-ecosystem: "terraform"
+    directory: "/infra/terraform"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "potangpa-sudo"
+    labels:
+      - "dependencies"
+      - "component: terraform"
+  
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "potangpa-sudo"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    open-pull-requests-limit: 5
