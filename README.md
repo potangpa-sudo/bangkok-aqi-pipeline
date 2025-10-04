@@ -1,6 +1,17 @@
 # Bangkok AQI Pipeline
 
-**Production-grade GCP data pipeline** for Bangkok air quality and weather analytics, demonstrating modern cloud-native architecture, infrastructure-as-code, and DataOps best practices.
+# Bangkok AQI Pipeline
+
+[![CI](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/actions/workflows/ci.yml)
+[![Deploy](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/actions/workflows/deploy.yml/badge.svg)](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Terraform](https://img.shields.io/badge/terraform-1.5.0+-purple.svg)](https://www.terraform.io/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+
+> **Production-Grade Data Engineering Project**: End-to-end cloud data pipeline for real-time air quality monitoring in Bangkok
+
+[Features](#-key-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
 [![CI](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/workflows/CI/badge.svg)](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/actions)
 [![Deploy](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/workflows/Deploy%20to%20GCP/badge.svg)](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/actions)
@@ -420,29 +431,53 @@ dbt source freshness
 
 ## 🤝 Contributing
 
-Contributions welcome! Please:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Quick Start for Contributors
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes with tests
-4. Submit a pull request
+4. Commit using conventional commits (`git commit -m 'feat: add amazing feature'`)
+5. Push to your branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
-## 📝 License
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
-MIT License - See [LICENSE](LICENSE) file for details
+## � Security
+
+Found a security vulnerability? Please read our [Security Policy](SECURITY.md) for responsible disclosure guidelines.
+
+## �📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **Open-Meteo** for free weather and air quality API
-- **dbt Labs** for the amazing dbt framework
-- **Google Cloud** for generous free tier
-- **Terraform** for infrastructure-as-code
+- [Open-Meteo](https://open-meteo.com/) for providing free weather and AQI APIs
+- [Google Cloud Platform](https://cloud.google.com/) for cloud infrastructure
+- [dbt Labs](https://www.getdbt.com/) for the transformation framework
+- [Apache Airflow](https://airflow.apache.org/) for workflow orchestration
+- [Terraform](https://www.terraform.io/) for infrastructure-as-code
+- All contributors and supporters of this project
 
 ## 👤 Author
 
-**Your Name**
-- Portfolio: [yourportfolio.com](https://yourportfolio.com)
-- LinkedIn: [linkedin.com/in/yourname](https://linkedin.com/in/yourname)
-- Email: your.email@example.com
+**@potangpa-sudo**
+- GitHub: [@potangpa-sudo](https://github.com/potangpa-sudo)
+- Project: [Bangkok AQI Pipeline](https://github.com/potangpa-sudo/bangkok-aqi-pipeline)
+
+## 📞 Contact & Support
+
+- **Issues**: [Report a bug](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/issues/new?template=bug_report.md)
+- **Feature Requests**: [Request a feature](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/issues/new?template=feature_request.md)
+- **Discussions**: [GitHub Discussions](https://github.com/potangpa-sudo/bangkok-aqi-pipeline/discussions)
+
+## 📊 Project Stats
+
+![GitHub stars](https://img.shields.io/github/stars/potangpa-sudo/bangkok-aqi-pipeline?style=social)
+![GitHub forks](https://img.shields.io/github/forks/potangpa-sudo/bangkok-aqi-pipeline?style=social)
+![GitHub issues](https://img.shields.io/github/issues/potangpa-sudo/bangkok-aqi-pipeline)
+![GitHub last commit](https://img.shields.io/github/last-commit/potangpa-sudo/bangkok-aqi-pipeline)
 
 ---
 
