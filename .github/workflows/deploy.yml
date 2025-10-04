@@ -70,7 +70,7 @@ jobs:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
       
       - name: Download Plan
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tfplan
           path: infra/terraform/
