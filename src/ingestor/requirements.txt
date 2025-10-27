@@ -4,4 +4,4 @@ pydantic==2.5.3
 google-cloud-storage==2.14.0
 google-cloud-pubsub==2.19.0
 requests==2.31.0
-python-dotenv==1.0.1
+python-dotenv==1.2.1
