@@ -31,7 +31,7 @@ jobs:
           awk "/## \[${VERSION}\]/{flag=1;next}/## \[/{flag=0}flag" CHANGELOG.md > release_notes.md
       
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Release v${{ steps.version.outputs.VERSION }}
           body_path: release_notes.md
@@ -106,7 +106,7 @@ jobs:
           tar -czf terraform-modules-${{ steps.version.outputs.VERSION }}.tar.gz modules/
       
       - name: Upload to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: infra/terraform/terraform-modules-${{ steps.version.outputs.VERSION }}.tar.gz
         env:
