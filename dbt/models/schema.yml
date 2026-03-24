@@ -24,6 +24,25 @@ models:
         tests:
           - not_null
 
+  - name: stg_weather_hourly
+    description: Hourly weather forecasts landed for downstream AQI enrichment.
+    columns:
+      - name: forecast_timestamp_local
+        tests:
+          - not_null
+      - name: ingest_time_utc
+        tests:
+          - not_null
+      - name: source_system
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["open-meteo-weather"]
+      - name: raw_file_name
+        tests:
+          - not_null
+
   - name: fct_aqi_hourly
     description: Latest available AQI forecast for each forecast hour after deduplicating repeated extracts.
     columns:
@@ -36,5 +55,14 @@ models:
           - not_null
           - unique
       - name: last_ingested_at_utc
+        tests:
+          - not_null
+      - name: temperature_c
+        tests:
+          - not_null
+      - name: relative_humidity
+        tests:
+          - not_null
+      - name: wind_speed_kph
         tests:
           - not_null

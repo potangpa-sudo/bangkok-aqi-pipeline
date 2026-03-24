@@ -9,7 +9,9 @@ from bangkok_aqi.extract import (
     AQIPayloadValidationError,
     build_hourly_frame,
     build_raw_object_path,
+    build_weather_frame,
     validate_hourly_frame,
+    validate_weather_frame,
 )
 
 
@@ -63,6 +65,36 @@ def test_build_hourly_frame_adds_metadata_columns() -> None:
     ]
 
 
+def test_build_weather_frame_adds_metadata_columns() -> None:
+    payload = {
+        "hourly": {
+            "time": ["2026-03-24T00:00"],
+            "temperature_2m": [31.5],
+            "relative_humidity_2m": [63],
+            "wind_speed_10m": [12.1],
+        }
+    }
+
+    frame = build_weather_frame(
+        payload,
+        datetime(2026, 3, 24, 0, 0, tzinfo=timezone.utc),
+        build_settings(),
+    )
+
+    assert frame.to_dict(orient="records") == [
+        {
+            "time": "2026-03-24T00:00",
+            "temperature_2m": 31.5,
+            "relative_humidity_2m": 63,
+            "wind_speed_10m": 12.1,
+            "ingest_time_utc": "2026-03-24T00:00:00+00:00",
+            "source_system": "open-meteo-weather",
+            "latitude": 13.75,
+            "longitude": 100.5,
+        }
+    ]
+
+
 def test_validate_hourly_frame_rejects_missing_required_columns() -> None:
     frame = pd.DataFrame(
         {
@@ -104,3 +136,41 @@ def test_validate_hourly_frame_rejects_all_null_metrics() -> None:
         AQIPayloadValidationError, match="does not contain any non-null AQI metrics"
     ):
         validate_hourly_frame(frame)
+
+
+def test_build_raw_object_path_supports_weather_dataset() -> None:
+    ingested_at = datetime(2026, 3, 24, 12, 34, 56, tzinfo=timezone.utc)
+
+    assert (
+        build_raw_object_path(ingested_at, dataset="weather")
+        == "raw/ingest_date=2026-03-24/bangkok_weather_raw_20260324T123456Z.parquet"
+    )
+
+
+def test_validate_weather_frame_rejects_missing_required_columns() -> None:
+    frame = pd.DataFrame(
+        {
+            "time": ["2026-03-24T00:00"],
+            "temperature_2m": [31.5],
+            "wind_speed_10m": [12.1],
+        }
+    )
+
+    with pytest.raises(
+        AQIPayloadValidationError, match="missing required columns: relative_humidity_2m"
+    ):
+        validate_weather_frame(frame)
+
+
+def test_validate_weather_frame_rejects_invalid_timestamps() -> None:
+    frame = pd.DataFrame(
+        {
+            "time": ["not-a-timestamp"],
+            "temperature_2m": [31.5],
+            "relative_humidity_2m": [63],
+            "wind_speed_10m": [12.1],
+        }
+    )
+
+    with pytest.raises(AQIPayloadValidationError, match="invalid forecast timestamps"):
+        validate_weather_frame(frame)

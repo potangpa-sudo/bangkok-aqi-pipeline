@@ -17,7 +17,6 @@ from bangkok_aqi.dashboard import (
     warehouse_has_mart,
 )
 
-
 st.set_page_config(page_title="Bangkok AQI Dashboard", layout="wide")
 
 st.markdown(
@@ -102,13 +101,19 @@ if st.sidebar.button("Refresh warehouse data", use_container_width=True):
 
 if not duckdb_path.exists():
     st.error(
-        f"Warehouse file not found at `{duckdb_path}`. Run `bangkok-aqi extract` and `dbt build --project-dir dbt --profiles-dir dbt` first."
+        (
+            f"Warehouse file not found at `{duckdb_path}`. "
+            "Run `bangkok-aqi extract` and `dbt build --project-dir dbt --profiles-dir dbt` first."
+        )
     )
     st.stop()
 
 if not warehouse_has_mart(duckdb_path):
     st.error(
-        "DuckDB is present, but the `fct_aqi_hourly` mart is missing. Run `dbt build --project-dir dbt --profiles-dir dbt` first."
+        (
+            "DuckDB is present, but the `fct_aqi_hourly` mart is missing. "
+            "Run `dbt build --project-dir dbt --profiles-dir dbt` first."
+        )
     )
     st.stop()
 
@@ -157,14 +162,16 @@ peak_forecast = filtered.loc[filtered["us_aqi"].idxmax()]
 aqi_band = classify_aqi(next_forecast["us_aqi"])
 comparison_row = filtered.iloc[1] if len(filtered) > 1 else filtered.iloc[0]
 aqi_delta = next_forecast["us_aqi"] - comparison_row["us_aqi"]
+next_forecast_time = next_forecast["forecast_timestamp_local"].strftime("%Y-%m-%d %H:%M")
+hero_aqi_value = int(next_forecast["us_aqi"])
 
 st.markdown(
     f"""
     <div class="hero-card">
         <div class="hero-eyebrow">DuckDB mart / Bangkok hourly forecast</div>
-        <div class="hero-value" style="color: {aqi_band.color};">{int(next_forecast["us_aqi"])} AQI</div>
+        <div class="hero-value" style="color: {aqi_band.color};">{hero_aqi_value} AQI</div>
         <p class="hero-copy">
-            Next forecast hour is <strong>{next_forecast["forecast_timestamp_local"].strftime("%Y-%m-%d %H:%M")}</strong>.
+            Next forecast hour is <strong>{next_forecast_time}</strong>.
             Air quality is currently in the <strong>{aqi_band.label}</strong> band.
             {aqi_band.advisory}
         </p>
@@ -174,16 +181,24 @@ st.markdown(
 )
 
 metric_columns = st.columns(4)
-metric_columns[0].metric("Next forecast AQI", f'{int(next_forecast["us_aqi"])}', f"{aqi_delta:+.0f}")
+metric_columns[0].metric("Next forecast AQI", f"{hero_aqi_value}", f"{aqi_delta:+.0f}")
 metric_columns[1].metric("Peak AQI in window", f'{int(peak_forecast["us_aqi"])}')
 metric_columns[2].metric("Average PM2.5", f'{filtered["pm25"].mean():.1f}')
-metric_columns[3].metric(
+metric_columns[3].metric("Temperature", f'{next_forecast["temperature_c"]:.1f} C')
+
+secondary_metric_columns = st.columns(3)
+secondary_metric_columns[0].metric(
+    "Relative humidity", f'{next_forecast["relative_humidity"]:.0f}%'
+)
+secondary_metric_columns[1].metric("Wind speed", f'{next_forecast["wind_speed_kph"]:.1f} km/h')
+secondary_metric_columns[2].metric(
     "Last ingestion (UTC)",
     filtered["last_ingested_at_utc"].max().strftime("%Y-%m-%d %H:%M"),
 )
 
-status_columns = st.columns(4)
-for column, status in zip(status_columns, build_status_rows(filtered)):
+status_rows = build_status_rows(filtered)
+status_columns = st.columns(len(status_rows))
+for column, status in zip(status_columns, status_rows, strict=False):
     column.markdown(
         f"""
         <div class="status-card">
@@ -205,6 +220,9 @@ aqi_chart = (
             alt.Tooltip("us_aqi:Q", title="US AQI"),
             alt.Tooltip("pm25:Q", title="PM2.5", format=".1f"),
             alt.Tooltip("pm10:Q", title="PM10", format=".1f"),
+            alt.Tooltip("temperature_c:Q", title="Temperature (C)", format=".1f"),
+            alt.Tooltip("relative_humidity:Q", title="Humidity (%)", format=".0f"),
+            alt.Tooltip("wind_speed_kph:Q", title="Wind speed (km/h)", format=".1f"),
         ],
     )
     .properties(height=320, title="AQI Forecast Curve")
@@ -220,8 +238,15 @@ pollutant_chart = (
         color=alt.Color(
             "metric:N",
             scale=alt.Scale(
-                domain=["US AQI", "PM2.5", "PM10"],
-                range=["#C96A16", "#2E8540", "#1F618D"],
+                domain=[
+                    "US AQI",
+                    "PM2.5",
+                    "PM10",
+                    "Temperature (C)",
+                    "Relative Humidity (%)",
+                    "Wind Speed (km/h)",
+                ],
+                range=["#C96A16", "#2E8540", "#1F618D", "#C0392B", "#5B7DB1", "#40594A"],
             ),
         ),
         tooltip=[
@@ -246,6 +271,11 @@ daily_chart = (
             alt.Tooltip("max_aqi:Q", title="Max AQI", format=".0f"),
             alt.Tooltip("avg_pm25:Q", title="Average PM2.5", format=".1f"),
             alt.Tooltip("avg_pm10:Q", title="Average PM10", format=".1f"),
+            alt.Tooltip("avg_temperature_c:Q", title="Average Temperature (C)", format=".1f"),
+            alt.Tooltip(
+                "avg_relative_humidity:Q", title="Average Humidity (%)", format=".1f"
+            ),
+            alt.Tooltip("avg_wind_speed_kph:Q", title="Average Wind Speed (km/h)", format=".1f"),
         ],
     )
     .properties(height=280, title="Daily Peak AQI")
@@ -263,11 +293,17 @@ display_table = filtered[
         "us_aqi",
         "pm25",
         "pm10",
+        "temperature_c",
+        "relative_humidity",
+        "wind_speed_kph",
         "last_ingested_at_utc",
     ]
 ].rename(
     columns={
         "forecast_timestamp_local": "forecast_time_local",
+        "temperature_c": "temperature_c",
+        "relative_humidity": "relative_humidity",
+        "wind_speed_kph": "wind_speed_kph",
         "last_ingested_at_utc": "last_ingested_utc",
     }
 )

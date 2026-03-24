@@ -4,12 +4,14 @@ This project is a portfolio-ready data engineering capstone focused on collectin
 
 The current version includes validation at both ingestion time and warehouse build time so malformed API payloads fail fast instead of quietly reaching the dashboard.
 It also supports optional failure alerts through a webhook so broken Airflow tasks and dbt runs can notify you automatically.
+AQI forecasts are now enriched with a second hourly weather dataset so downstream analysis can compare pollution with temperature, humidity, and wind conditions.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
     A["Open-Meteo Air Quality API"] --> B["Airflow DAG"]
+    A2["Open-Meteo Weather Forecast API"] --> B
     B --> C["Python extract job"]
     C --> D["Raw parquet landing zone"]
     D --> E["dbt staging models"]
@@ -49,6 +51,7 @@ flowchart LR
 ## Data Quality Guardrails
 
 - The extract job validates that the hourly payload contains the expected AQI fields, non-empty rows, parseable timestamps, and at least one populated metric before writing raw parquet.
+- The enrichment extract also validates weather timestamps and required fields before landing the second dataset.
 - dbt tests assert key metadata fields, accepted source-system values, non-negative particulate metrics, AQI values within expected bounds, and contiguous hourly coverage in the mart.
 - Airflow surfaces payload validation failures as explicit task failures so bad upstream data is visible in orchestration instead of looking like a generic shell error.
 
@@ -107,9 +110,10 @@ If the extract task or the dbt build task fails inside Airflow, the DAG will pos
 This first pass sets up a clean project foundation for a capstone:
 
 - local Airflow orchestration with PostgreSQL metadata
-- package-based Python ingestion
+- package-based Python ingestion for AQI and weather data
 - extract-time payload validation before raw data is persisted
 - dbt transformations with mart-level data quality assertions
+- AQI mart enrichment with temperature, humidity, and wind speed forecasts
 - DuckDB warehouse output under `warehouse/`
 - Streamlit dashboard over the AQI mart
 - repo cleanup and gitignore strategy
@@ -117,6 +121,6 @@ This first pass sets up a clean project foundation for a capstone:
 
 ## Recommended Next Steps
 
-1. Add run alerts and monitoring so failed Airflow runs or dbt tests notify you automatically.
-2. Add a second dataset for enrichment to make the capstone less one-dimensional.
+1. Add delivery-specific alert formatting and routing so failures can target Slack, Teams, or email cleanly.
+2. Add a third dataset, such as traffic or wildfire data, to make the capstone less one-dimensional.
 3. Replace the legacy Azure deployment script with a batch-oriented deployment path.

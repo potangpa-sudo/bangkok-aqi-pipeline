@@ -106,6 +106,9 @@ def load_hourly_aqi(duckdb_path: Path) -> pd.DataFrame:
                 pm25,
                 pm10,
                 us_aqi,
+                temperature_c,
+                relative_humidity,
+                wind_speed_kph,
                 last_ingested_at_utc,
                 source_system,
                 latitude,
@@ -124,7 +127,16 @@ def load_hourly_aqi(duckdb_path: Path) -> pd.DataFrame:
 def build_daily_summary(hourly: pd.DataFrame) -> pd.DataFrame:
     if hourly.empty:
         return pd.DataFrame(
-            columns=["forecast_date_local", "avg_aqi", "max_aqi", "avg_pm25", "avg_pm10"]
+            columns=[
+                "forecast_date_local",
+                "avg_aqi",
+                "max_aqi",
+                "avg_pm25",
+                "avg_pm10",
+                "avg_temperature_c",
+                "avg_relative_humidity",
+                "avg_wind_speed_kph",
+            ]
         )
 
     return (
@@ -134,8 +146,21 @@ def build_daily_summary(hourly: pd.DataFrame) -> pd.DataFrame:
             max_aqi=("us_aqi", "max"),
             avg_pm25=("pm25", "mean"),
             avg_pm10=("pm10", "mean"),
+            avg_temperature_c=("temperature_c", "mean"),
+            avg_relative_humidity=("relative_humidity", "mean"),
+            avg_wind_speed_kph=("wind_speed_kph", "mean"),
         )
-        .round({"avg_aqi": 1, "max_aqi": 0, "avg_pm25": 1, "avg_pm10": 1})
+        .round(
+            {
+                "avg_aqi": 1,
+                "max_aqi": 0,
+                "avg_pm25": 1,
+                "avg_pm10": 1,
+                "avg_temperature_c": 1,
+                "avg_relative_humidity": 1,
+                "avg_wind_speed_kph": 1,
+            }
+        )
     )
 
 
@@ -146,6 +171,12 @@ def build_metric_options(hourly: pd.DataFrame) -> dict[str, str]:
         options["pm25"] = "PM2.5"
     if "pm10" in hourly.columns:
         options["pm10"] = "PM10"
+    if "temperature_c" in hourly.columns:
+        options["temperature_c"] = "Temperature (C)"
+    if "relative_humidity" in hourly.columns:
+        options["relative_humidity"] = "Relative Humidity (%)"
+    if "wind_speed_kph" in hourly.columns:
+        options["wind_speed_kph"] = "Wind Speed (km/h)"
 
     return options
 
@@ -179,4 +210,6 @@ def build_status_rows(hourly: pd.DataFrame) -> list[dict[str, Any]]:
             "value": peak_row["forecast_timestamp_local"].strftime("%Y-%m-%d %H:%M"),
         },
         {"label": "Peak AQI band", "value": classify_aqi(peak_row["us_aqi"]).label},
+        {"label": "Temperature", "value": f'{latest_row["temperature_c"]:.1f} C'},
+        {"label": "Wind speed", "value": f'{latest_row["wind_speed_kph"]:.1f} km/h'},
     ]
