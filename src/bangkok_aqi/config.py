@@ -18,6 +18,7 @@ class Settings:
     warehouse_dir: Path
     azure_storage_connection_string: str | None
     azure_storage_container_name: str
+    alert_webhook_url: str | None
 
     @property
     def duckdb_path(self) -> Path:
@@ -41,4 +42,5 @@ def get_settings() -> Settings:
         warehouse_dir=warehouse_dir,
         azure_storage_connection_string=os.getenv("AZURE_STORAGE_CONNECTION_STRING"),
         azure_storage_container_name=os.getenv("AZURE_STORAGE_CONTAINER_NAME", "aqi-data"),
+        alert_webhook_url=os.getenv("ALERT_WEBHOOK_URL"),
     )

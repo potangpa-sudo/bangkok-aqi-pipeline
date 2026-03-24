@@ -6,6 +6,7 @@ from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+from bangkok_aqi.alerts import notify_airflow_failure
 from bangkok_aqi.extract import AQIPayloadValidationError, run_extract
 
 
@@ -28,6 +29,7 @@ with DAG(
     extract_raw_aqi = PythonOperator(
         task_id="extract_raw_aqi",
         python_callable=extract_raw_aqi_task,
+        on_failure_callback=notify_airflow_failure,
     )
 
     build_dbt_models = BashOperator(
@@ -37,6 +39,7 @@ with DAG(
             "cd /opt/airflow/project && "
             "dbt build --project-dir dbt --profiles-dir dbt"
         ),
+        on_failure_callback=notify_airflow_failure,
     )
 
     extract_raw_aqi >> build_dbt_models

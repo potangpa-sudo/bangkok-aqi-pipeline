@@ -3,6 +3,7 @@
 This project is a portfolio-ready data engineering capstone focused on collecting, modeling, and serving Bangkok air quality data. The repository is structured around a clear split: Airflow orchestrates the pipeline, Python handles ingestion, dbt handles transformation, PostgreSQL stores Airflow's metadata, and DuckDB remains the analytics warehouse.
 
 The current version includes validation at both ingestion time and warehouse build time so malformed API payloads fail fast instead of quietly reaching the dashboard.
+It also supports optional failure alerts through a webhook so broken Airflow tasks and dbt runs can notify you automatically.
 
 ## Architecture
 
@@ -60,6 +61,8 @@ python -m pip install -e ".[dev]"
 cp .env.example .env
 ```
 
+To enable failure alerts, set `ALERT_WEBHOOK_URL` in `.env` to an incoming webhook endpoint that accepts a JSON payload shaped like `{"text": "..."}`.
+
 Run the ingestion job:
 
 ```bash
@@ -96,6 +99,8 @@ Airflow UI:
 ```text
 http://localhost:8080
 ```
+
+If the extract task or the dbt build task fails inside Airflow, the DAG will post a failure message to the configured webhook.
 
 ## Current Scope
 

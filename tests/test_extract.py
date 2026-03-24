@@ -22,6 +22,7 @@ def build_settings() -> Settings:
         warehouse_dir=Path("/tmp/bangkok-aqi-warehouse"),
         azure_storage_connection_string=None,
         azure_storage_container_name="aqi-data",
+        alert_webhook_url=None,
     )
 
 
