@@ -12,6 +12,17 @@ models:
         description: UTC timestamp for when the raw extract landed.
         tests:
           - not_null
+      - name: source_system
+        description: Upstream system name set by the extract job.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["open-meteo"]
+      - name: raw_file_name
+        description: Raw parquet object path that produced this staged row.
+        tests:
+          - not_null
 
   - name: fct_aqi_hourly
     description: Latest available AQI forecast for each forecast hour after deduplicating repeated extracts.
@@ -24,3 +35,6 @@ models:
         tests:
           - not_null
           - unique
+      - name: last_ingested_at_utc
+        tests:
+          - not_null
