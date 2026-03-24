@@ -1,7 +1,7 @@
 PYTHON ?= python3
 PYTHONPATH=src
 
-.PHONY: install extract dbt-build dashboard test lint airflow-init airflow-up airflow-down
+.PHONY: install extract dbt-build dashboard test lint airflow-init airflow-up airflow-down deploy-azure-job
 
 install:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -29,3 +29,6 @@ airflow-up:
 
 airflow-down:
 	docker compose down
+
+deploy-azure-job:
+	bash deploy_azure.sh

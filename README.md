@@ -90,6 +90,12 @@ Launch the dashboard:
 make dashboard
 ```
 
+Deploy the batch extract job to Azure Container Apps Jobs:
+
+```bash
+make deploy-azure-job
+```
+
 Run Airflow locally:
 
 ```bash
@@ -105,6 +111,13 @@ http://localhost:8080
 
 If the extract task or the dbt build task fails inside Airflow, the DAG will post a failure message to the configured webhook.
 
+## Azure Batch Deployment
+
+- [`deploy_azure.sh`](/Users/potangpa/bangkok-aqi-pipeline/deploy_azure.sh) now provisions an Azure Container Apps Job instead of a long-lived public Container App.
+- The deployment flow creates a resource group, blob storage, ACR, a Container Apps environment, and a scheduled or manual batch job for `python -m bangkok_aqi.cli extract`.
+- Override settings with environment variables such as `RESOURCE_GROUP`, `LOCATION`, `JOB_TRIGGER_TYPE`, `JOB_CRON_SCHEDULE`, and `ALERT_WEBHOOK_URL` before running the script.
+- Use `JOB_TRIGGER_TYPE=Manual make deploy-azure-job` if you want an on-demand job instead of the default hourly schedule.
+
 ## Current Scope
 
 This first pass sets up a clean project foundation for a capstone:
@@ -114,6 +127,7 @@ This first pass sets up a clean project foundation for a capstone:
 - extract-time payload validation before raw data is persisted
 - dbt transformations with mart-level data quality assertions
 - AQI mart enrichment with temperature, humidity, and wind speed forecasts
+- Azure batch deployment path for scheduled cloud extraction
 - DuckDB warehouse output under `warehouse/`
 - Streamlit dashboard over the AQI mart
 - repo cleanup and gitignore strategy
@@ -123,4 +137,4 @@ This first pass sets up a clean project foundation for a capstone:
 
 1. Add delivery-specific alert formatting and routing so failures can target Slack, Teams, or email cleanly.
 2. Add a third dataset, such as traffic or wildfire data, to make the capstone less one-dimensional.
-3. Replace the legacy Azure deployment script with a batch-oriented deployment path.
+3. Persist warehouse artifacts in cloud storage or move transforms to a cloud-native warehouse path instead of local DuckDB only.
