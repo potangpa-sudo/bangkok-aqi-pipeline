@@ -9,12 +9,12 @@ test-paths: ["tests"]
 clean-targets: ["target", "dbt_packages"]
 
 vars:
-  raw_aqi_glob: "{{ env_var('DBT_RAW_AQI_GLOB', 'data/raw/**/*.parquet') }}"
-  raw_weather_glob: "{{ env_var('DBT_RAW_WEATHER_GLOB', 'data/raw/**/*.parquet') }}"
+  raw_aqi_glob: "{{ env_var('DBT_RAW_AQI_GLOB', 'data/raw/aqi/**/*.json') }}"
+  raw_weather_glob: "{{ env_var('DBT_RAW_WEATHER_GLOB', 'data/raw/weather/**/*.json') }}"
 
 models:
   bangkok_aqi_dbt:
     staging:
-      +materialized: view
+      +materialized: table
     marts:
       +materialized: table

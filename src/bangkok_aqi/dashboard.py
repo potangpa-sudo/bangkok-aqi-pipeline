@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -129,6 +130,30 @@ def load_hourly_aqi(duckdb_path: Path) -> pd.DataFrame:
     hourly["forecast_date_local"] = pd.to_datetime(hourly["forecast_date_local"]).dt.date
     hourly["last_ingested_at_utc"] = pd.to_datetime(hourly["last_ingested_at_utc"], utc=True)
     return hourly
+
+
+def is_data_stale(
+    last_ingested_at: pd.Timestamp | None,
+    max_age: timedelta = timedelta(hours=2),
+    now: pd.Timestamp | None = None,
+) -> bool:
+    if last_ingested_at is None or pd.isna(last_ingested_at):
+        return True
+
+    ingestion_timestamp = pd.Timestamp(last_ingested_at)
+    if ingestion_timestamp.tzinfo is None:
+        ingestion_timestamp = ingestion_timestamp.tz_localize("UTC")
+    else:
+        ingestion_timestamp = ingestion_timestamp.tz_convert("UTC")
+
+    reference_timestamp = now if now is not None else pd.Timestamp.now(tz="UTC")
+    reference_timestamp = pd.Timestamp(reference_timestamp)
+    if reference_timestamp.tzinfo is None:
+        reference_timestamp = reference_timestamp.tz_localize("UTC")
+    else:
+        reference_timestamp = reference_timestamp.tz_convert("UTC")
+
+    return reference_timestamp - ingestion_timestamp > max_age
 
 
 def build_daily_summary(hourly: pd.DataFrame) -> pd.DataFrame:

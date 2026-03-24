@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import duckdb
@@ -11,6 +11,7 @@ from bangkok_aqi.dashboard import (
     build_map_frame,
     build_metric_options,
     classify_aqi,
+    is_data_stale,
     load_hourly_aqi,
 )
 
@@ -119,6 +120,13 @@ def test_load_hourly_aqi_backfills_missing_weather_columns(tmp_path: Path) -> No
         "longitude",
     ]
     assert hourly[["temperature_c", "relative_humidity", "wind_speed_kph"]].isna().all().all()
+
+
+def test_is_data_stale_only_after_two_hours() -> None:
+    now = pd.Timestamp("2026-03-24 12:00:00+00:00")
+
+    assert not is_data_stale(now - timedelta(hours=2), now=now)
+    assert is_data_stale(now - timedelta(hours=2, minutes=1), now=now)
 
 
 def test_build_map_frame_uses_latest_forecast_coordinates() -> None:

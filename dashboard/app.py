@@ -14,6 +14,7 @@ from bangkok_aqi.dashboard import (
     build_metric_options,
     build_status_rows,
     classify_aqi,
+    is_data_stale,
     load_hourly_aqi,
     melt_metrics,
     warehouse_has_mart,
@@ -96,6 +97,36 @@ st.markdown(
         font-size: 1.05rem;
         font-weight: 600;
         line-height: 1.3;
+    }
+    .timestamp-card {
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(27, 36, 48, 0.08);
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+        min-height: 104px;
+    }
+    .timestamp-label {
+        color: #5c6770;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.45rem;
+    }
+    .timestamp-value {
+        color: #1b2430;
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 0.4rem;
+    }
+    .timestamp-card.is-stale .timestamp-value,
+    .timestamp-card.is-stale .timestamp-note {
+        color: #c0392b;
+    }
+    .timestamp-note {
+        color: #5c6770;
+        font-size: 0.88rem;
+        line-height: 1.2;
     }
     </style>
     """,
@@ -218,9 +249,19 @@ secondary_metric_columns[1].metric(
     "Wind speed",
     format_optional_metric(filtered, next_forecast, "wind_speed_kph", ".1f", " km/h"),
 )
-secondary_metric_columns[2].metric(
-    "Last ingestion (UTC)",
-    filtered["last_ingested_at_utc"].max().strftime("%Y-%m-%d %H:%M"),
+latest_ingestion = filtered["last_ingested_at_utc"].max()
+ingestion_is_stale = is_data_stale(latest_ingestion)
+secondary_metric_columns[2].markdown(
+    f"""
+    <div class="timestamp-card {'is-stale' if ingestion_is_stale else 'is-fresh'}">
+        <div class="timestamp-label">Last ingestion (UTC)</div>
+        <div class="timestamp-value">{latest_ingestion.strftime("%Y-%m-%d %H:%M")}</div>
+        <div class="timestamp-note">
+            {"Older than 2 hours" if ingestion_is_stale else "Within 2 hours"}
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 status_rows = build_status_rows(filtered)

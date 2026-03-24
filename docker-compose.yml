@@ -31,7 +31,8 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER:-airflow}:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@postgres/${AIRFLOW_POSTGRES_DB:-airflow}
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       DBT_DUCKDB_PATH: /opt/airflow/project/warehouse/bangkok_aqi.duckdb
-      DBT_RAW_AQI_GLOB: /opt/airflow/project/data/raw/**/*.parquet
+      DBT_RAW_AQI_GLOB: /opt/airflow/project/data/raw/aqi/**/*.json
+      DBT_RAW_WEATHER_GLOB: /opt/airflow/project/data/raw/weather/**/*.json
       PYTHONPATH: /opt/airflow/project/src
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
@@ -72,7 +73,8 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER:-airflow}:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@postgres/${AIRFLOW_POSTGRES_DB:-airflow}
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       DBT_DUCKDB_PATH: /opt/airflow/project/warehouse/bangkok_aqi.duckdb
-      DBT_RAW_AQI_GLOB: /opt/airflow/project/data/raw/**/*.parquet
+      DBT_RAW_AQI_GLOB: /opt/airflow/project/data/raw/aqi/**/*.json
+      DBT_RAW_WEATHER_GLOB: /opt/airflow/project/data/raw/weather/**/*.json
       PYTHONPATH: /opt/airflow/project/src
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
@@ -106,7 +108,8 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER:-airflow}:${AIRFLOW_POSTGRES_PASSWORD:-airflow}@postgres/${AIRFLOW_POSTGRES_DB:-airflow}
       DBT_DUCKDB_PATH: /opt/airflow/project/warehouse/bangkok_aqi.duckdb
-      DBT_RAW_AQI_GLOB: /opt/airflow/project/data/raw/**/*.parquet
+      DBT_RAW_AQI_GLOB: /opt/airflow/project/data/raw/aqi/**/*.json
+      DBT_RAW_WEATHER_GLOB: /opt/airflow/project/data/raw/weather/**/*.json
       PYTHONPATH: /opt/airflow/project/src
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:

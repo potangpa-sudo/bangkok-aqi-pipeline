@@ -9,7 +9,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Bangkok AQI pipeline commands")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    subparsers.add_parser("extract", help="Fetch AQI data and land raw parquet files")
+    subparsers.add_parser("extract", help="Fetch AQI data and land raw JSON files")
     return parser
 
 

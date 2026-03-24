@@ -13,7 +13,7 @@ flowchart LR
     A["Open-Meteo Air Quality API"] --> B["Airflow DAG"]
     A2["Open-Meteo Weather Forecast API"] --> B
     B --> C["Python extract job"]
-    C --> D["Raw parquet landing zone"]
+    C --> D["Raw JSON Bronze landing zone"]
     D --> E["dbt staging models"]
     E --> F["dbt mart models"]
     F --> G["DuckDB analytics warehouse"]
@@ -45,12 +45,12 @@ flowchart LR
 - Python remains responsible for API integration, retries, configuration, and raw data persistence.
 - dbt owns type casting, column naming, quality assertions, and the final analytics model.
 - PostgreSQL is only used for Airflow's metastore.
-- Raw data is append-only and partitioned by ingestion date so the project keeps history instead of rewriting a single file.
+- Raw JSON Bronze data is append-only and partitioned by ingestion date so the project keeps history instead of rewriting a single file.
 - DuckDB stays in place because this repo is still single-user analytics, not a multi-user serving layer.
 
 ## Data Quality Guardrails
 
-- The extract job validates that the hourly payload contains the expected AQI fields, non-empty rows, parseable timestamps, and at least one populated metric before writing raw parquet.
+- The extract job validates that the hourly payload contains the expected AQI fields, non-empty rows, parseable timestamps, and at least one populated metric before writing raw JSON.
 - The enrichment extract also validates weather timestamps and required fields before landing the second dataset.
 - dbt tests assert key metadata fields, accepted source-system values, non-negative particulate metrics, AQI values within expected bounds, and contiguous hourly coverage in the mart.
 - Airflow surfaces payload validation failures as explicit task failures so bad upstream data is visible in orchestration instead of looking like a generic shell error.

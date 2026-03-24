@@ -3,7 +3,7 @@ with ranked_forecasts as (
         *,
         row_number() over (
             partition by forecast_timestamp_local
-            order by ingest_time_utc desc, raw_file_name desc
+            order by strptime(ingest_time_utc, '%Y%m%dT%H%M%SZ') desc, raw_file_name desc
         ) as version_rank
     from {{ ref("stg_aqi_hourly") }}
 ),
@@ -12,7 +12,7 @@ ranked_weather as (
         *,
         row_number() over (
             partition by forecast_timestamp_local
-            order by ingest_time_utc desc, raw_file_name desc
+            order by strptime(ingest_time_utc, '%Y%m%dT%H%M%SZ') desc, raw_file_name desc
         ) as version_rank
     from {{ ref("stg_weather_hourly") }}
 )
@@ -29,7 +29,7 @@ select
     weather.temperature_c,
     weather.relative_humidity,
     weather.wind_speed_kph,
-    aqi.ingest_time_utc as last_ingested_at_utc,
+    strptime(aqi.ingest_time_utc, '%Y%m%dT%H%M%SZ') as last_ingested_at_utc,
     aqi.source_system,
     aqi.latitude,
     aqi.longitude

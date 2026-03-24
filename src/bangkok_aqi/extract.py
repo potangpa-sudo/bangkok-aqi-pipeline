@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from io import BytesIO
 from typing import Any
 
 import pandas as pd
@@ -20,10 +20,20 @@ WEATHER_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 REQUIRED_HOURLY_COLUMNS = ("time", "pm2_5", "pm10", "us_aqi")
 METRIC_COLUMNS = ("pm2_5", "pm10", "us_aqi")
 REQUIRED_WEATHER_COLUMNS = ("time", "temperature_2m", "relative_humidity_2m", "wind_speed_10m")
+RAW_DATASET_FILE_PREFIXES = {
+    "aqi": "bangkok_aqi_raw",
+    "weather": "bangkok_weather_raw",
+}
 
 
 class AQIPayloadValidationError(ValueError):
     """Raised when the upstream hourly AQI payload is structurally invalid."""
+
+
+@dataclass(frozen=True)
+class RawPayload:
+    payload: dict[str, Any]
+    content: bytes
 
 
 def build_session() -> Session:
@@ -42,7 +52,7 @@ def build_session() -> Session:
     return session
 
 
-def fetch_hourly_payload(settings: Settings, session: Session | None = None) -> dict[str, Any]:
+def fetch_aqi_payload(settings: Settings, session: Session | None = None) -> RawPayload:
     active_session = session or build_session()
     response = active_session.get(
         AIR_QUALITY_URL,
@@ -55,10 +65,10 @@ def fetch_hourly_payload(settings: Settings, session: Session | None = None) -> 
         timeout=30,
     )
     response.raise_for_status()
-    return response.json()
+    return RawPayload(payload=response.json(), content=response.content)
 
 
-def fetch_weather_payload(settings: Settings, session: Session | None = None) -> dict[str, Any]:
+def fetch_weather_payload(settings: Settings, session: Session | None = None) -> RawPayload:
     active_session = session or build_session()
     response = active_session.get(
         WEATHER_FORECAST_URL,
@@ -71,40 +81,27 @@ def fetch_weather_payload(settings: Settings, session: Session | None = None) ->
         timeout=30,
     )
     response.raise_for_status()
-    return response.json()
+    return RawPayload(payload=response.json(), content=response.content)
 
 
-def build_hourly_frame(
-    payload: dict[str, Any], ingested_at: datetime, settings: Settings
-) -> pd.DataFrame:
+def build_hourly_payload_frame(payload: dict[str, Any]) -> pd.DataFrame:
     hourly = payload.get("hourly")
     if not hourly:
-        raise ValueError("Response payload does not contain an hourly section.")
+        raise AQIPayloadValidationError("Response payload does not contain an hourly section.")
 
-    frame = pd.DataFrame(hourly)
-    frame["ingest_time_utc"] = ingested_at.isoformat()
-    frame["source_system"] = "open-meteo"
-    frame["latitude"] = settings.latitude
-    frame["longitude"] = settings.longitude
-    return frame
+    return pd.DataFrame(hourly)
 
 
-def build_weather_frame(
-    payload: dict[str, Any], ingested_at: datetime, settings: Settings
-) -> pd.DataFrame:
+def build_weather_payload_frame(payload: dict[str, Any]) -> pd.DataFrame:
     hourly = payload.get("hourly")
     if not hourly:
-        raise ValueError("Weather payload does not contain an hourly section.")
+        raise AQIPayloadValidationError("Weather payload does not contain an hourly section.")
 
-    frame = pd.DataFrame(hourly)
-    frame["ingest_time_utc"] = ingested_at.isoformat()
-    frame["source_system"] = "open-meteo-weather"
-    frame["latitude"] = settings.latitude
-    frame["longitude"] = settings.longitude
-    return frame
+    return pd.DataFrame(hourly)
 
 
-def validate_hourly_frame(frame: pd.DataFrame) -> None:
+def validate_hourly_payload(payload: dict[str, Any]) -> None:
+    frame = build_hourly_payload_frame(payload)
     missing_columns = [column for column in REQUIRED_HOURLY_COLUMNS if column not in frame.columns]
     if missing_columns:
         formatted_columns = ", ".join(sorted(missing_columns))
@@ -123,7 +120,8 @@ def validate_hourly_frame(frame: pd.DataFrame) -> None:
         raise AQIPayloadValidationError("Hourly payload does not contain any non-null AQI metrics.")
 
 
-def validate_weather_frame(frame: pd.DataFrame) -> None:
+def validate_weather_payload(payload: dict[str, Any]) -> None:
+    frame = build_weather_payload_frame(payload)
     missing_columns = [column for column in REQUIRED_WEATHER_COLUMNS if column not in frame.columns]
     if missing_columns:
         formatted_columns = ", ".join(sorted(missing_columns))
@@ -140,45 +138,80 @@ def validate_weather_frame(frame: pd.DataFrame) -> None:
 
 
 def build_raw_object_path(ingested_at: datetime, dataset: str = "aqi") -> str:
+    file_prefix = RAW_DATASET_FILE_PREFIXES.get(dataset)
+    if file_prefix is None:
+        raise ValueError(f"Unsupported dataset '{dataset}'.")
+
     return (
-        f"raw/ingest_date={ingested_at:%Y-%m-%d}/"
-        f"bangkok_{dataset}_raw_{ingested_at:%Y%m%dT%H%M%SZ}.parquet"
+        f"raw/{dataset}/ingest_date={ingested_at:%Y-%m-%d}/"
+        f"{file_prefix}_{ingested_at:%Y%m%dT%H%M%SZ}.json"
     )
 
 
-def save_raw_frame(frame: pd.DataFrame, storage: StorageClient, object_path: str) -> None:
-    buffer = BytesIO()
-    frame.to_parquet(buffer, index=False)
-    storage.save_bytes(object_path, buffer.getvalue())
+def save_raw_payload(raw_payload: bytes, storage: StorageClient, object_path: str) -> None:
+    storage.save_bytes(object_path, raw_payload)
 
 
-def run_extract(settings: Settings | None = None) -> str:
+def extract_aqi_to_bronze(
+    settings: Settings | None = None,
+    session: Session | None = None,
+    ingested_at: datetime | None = None,
+) -> str:
+    active_settings = settings or get_settings()
+    active_session = session or build_session()
+    active_ingested_at = ingested_at or datetime.now(timezone.utc)
+    storage = StorageClient(active_settings)
+
+    raw_payload = fetch_aqi_payload(active_settings, session=active_session)
+    validate_hourly_payload(raw_payload.payload)
+    object_path = build_raw_object_path(active_ingested_at, dataset="aqi")
+    save_raw_payload(raw_payload.content, storage, object_path)
+    LOGGER.info("Saved raw AQI payload to %s using %s storage", object_path, storage.backend_name)
+    return object_path
+
+
+def extract_weather_to_bronze(
+    settings: Settings | None = None,
+    session: Session | None = None,
+    ingested_at: datetime | None = None,
+) -> str:
+    active_settings = settings or get_settings()
+    active_session = session or build_session()
+    active_ingested_at = ingested_at or datetime.now(timezone.utc)
+    storage = StorageClient(active_settings)
+
+    raw_payload = fetch_weather_payload(active_settings, session=active_session)
+    validate_weather_payload(raw_payload.payload)
+    object_path = build_raw_object_path(active_ingested_at, dataset="weather")
+    save_raw_payload(raw_payload.content, storage, object_path)
+    LOGGER.info(
+        "Saved raw weather payload to %s using %s storage",
+        object_path,
+        storage.backend_name,
+    )
+    return object_path
+
+
+def run_extract(settings: Settings | None = None) -> dict[str, str]:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
     active_settings = settings or get_settings()
-    storage = StorageClient(active_settings)
     ingested_at = datetime.now(timezone.utc)
-
     session = build_session()
-
-    aqi_payload = fetch_hourly_payload(active_settings, session=session)
-    aqi_frame = build_hourly_frame(aqi_payload, ingested_at, active_settings)
-    validate_hourly_frame(aqi_frame)
-    aqi_object_path = build_raw_object_path(ingested_at, dataset="aqi")
-    save_raw_frame(aqi_frame, storage, aqi_object_path)
-
-    weather_payload = fetch_weather_payload(active_settings, session=session)
-    weather_frame = build_weather_frame(weather_payload, ingested_at, active_settings)
-    validate_weather_frame(weather_frame)
-    weather_object_path = build_raw_object_path(ingested_at, dataset="weather")
-    save_raw_frame(weather_frame, storage, weather_object_path)
+    aqi_object_path = extract_aqi_to_bronze(
+        settings=active_settings,
+        session=session,
+        ingested_at=ingested_at,
+    )
+    weather_object_path = extract_weather_to_bronze(
+        settings=active_settings,
+        session=session,
+        ingested_at=ingested_at,
+    )
 
     LOGGER.info(
-        "Saved %s AQI rows to %s and %s weather rows to %s using %s storage",
-        len(aqi_frame),
+        "Saved raw AQI payload to %s and raw weather payload to %s",
         aqi_object_path,
-        len(weather_frame),
         weather_object_path,
-        storage.backend_name,
     )
-    return aqi_object_path
+    return {"aqi": aqi_object_path, "weather": weather_object_path}

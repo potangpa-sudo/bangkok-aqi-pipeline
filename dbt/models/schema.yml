@@ -20,7 +20,7 @@ models:
               arguments:
                 values: ["open-meteo"]
       - name: raw_file_name
-        description: Raw parquet object path that produced this staged row.
+        description: Raw JSON object path that produced this staged row.
         tests:
           - not_null
 
