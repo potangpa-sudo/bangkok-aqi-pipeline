@@ -20,6 +20,10 @@ REQUIRED_HOURLY_COLUMNS = ("time", "pm2_5", "pm10", "us_aqi")
 METRIC_COLUMNS = ("pm2_5", "pm10", "us_aqi")
 
 
+class AQIPayloadValidationError(ValueError):
+    """Raised when the upstream hourly AQI payload is structurally invalid."""
+
+
 def build_session() -> Session:
     session = requests.Session()
     retry = Retry(
@@ -71,17 +75,19 @@ def validate_hourly_frame(frame: pd.DataFrame) -> None:
     missing_columns = [column for column in REQUIRED_HOURLY_COLUMNS if column not in frame.columns]
     if missing_columns:
         formatted_columns = ", ".join(sorted(missing_columns))
-        raise ValueError(f"Hourly payload is missing required columns: {formatted_columns}.")
+        raise AQIPayloadValidationError(
+            f"Hourly payload is missing required columns: {formatted_columns}."
+        )
 
     if frame.empty:
-        raise ValueError("Hourly payload produced an empty frame.")
+        raise AQIPayloadValidationError("Hourly payload produced an empty frame.")
 
     parsed_timestamps = pd.to_datetime(frame["time"], errors="coerce")
     if parsed_timestamps.isna().any():
-        raise ValueError("Hourly payload contains invalid forecast timestamps.")
+        raise AQIPayloadValidationError("Hourly payload contains invalid forecast timestamps.")
 
     if all(frame[column].isna().all() for column in METRIC_COLUMNS):
-        raise ValueError("Hourly payload does not contain any non-null AQI metrics.")
+        raise AQIPayloadValidationError("Hourly payload does not contain any non-null AQI metrics.")
 
 
 def build_raw_object_path(ingested_at: datetime) -> str:

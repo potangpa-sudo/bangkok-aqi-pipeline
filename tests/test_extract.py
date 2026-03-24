@@ -5,7 +5,12 @@ import pandas as pd
 import pytest
 
 from bangkok_aqi.config import Settings
-from bangkok_aqi.extract import build_hourly_frame, build_raw_object_path, validate_hourly_frame
+from bangkok_aqi.extract import (
+    AQIPayloadValidationError,
+    build_hourly_frame,
+    build_raw_object_path,
+    validate_hourly_frame,
+)
 
 
 def build_settings() -> Settings:
@@ -66,7 +71,7 @@ def test_validate_hourly_frame_rejects_missing_required_columns() -> None:
         }
     )
 
-    with pytest.raises(ValueError, match="missing required columns: us_aqi"):
+    with pytest.raises(AQIPayloadValidationError, match="missing required columns: us_aqi"):
         validate_hourly_frame(frame)
 
 
@@ -80,7 +85,7 @@ def test_validate_hourly_frame_rejects_invalid_timestamps() -> None:
         }
     )
 
-    with pytest.raises(ValueError, match="invalid forecast timestamps"):
+    with pytest.raises(AQIPayloadValidationError, match="invalid forecast timestamps"):
         validate_hourly_frame(frame)
 
 
@@ -94,5 +99,7 @@ def test_validate_hourly_frame_rejects_all_null_metrics() -> None:
         }
     )
 
-    with pytest.raises(ValueError, match="does not contain any non-null AQI metrics"):
+    with pytest.raises(
+        AQIPayloadValidationError, match="does not contain any non-null AQI metrics"
+    ):
         validate_hourly_frame(frame)
