@@ -248,7 +248,8 @@ map_columns = st.columns((1.25, 0.95))
 map_columns[0].subheader("Forecast Location")
 map_columns[0].pydeck_chart(
     pdk.Deck(
-        map_style="mapbox://styles/mapbox/light-v11",
+        map_provider="carto",
+        map_style=pdk.map_styles.LIGHT,
         initial_view_state=pdk.ViewState(
             latitude=float(map_latitude),
             longitude=float(map_longitude),
