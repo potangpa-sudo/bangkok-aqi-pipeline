@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: stg_aqi_hourly
+    description: Raw AQI forecasts landed by the Python extract job and lightly standardized in dbt.
+    columns:
+      - name: forecast_timestamp_local
+        description: Local Bangkok forecast timestamp from the source API.
+        tests:
+          - not_null
+      - name: ingest_time_utc
+        description: UTC timestamp for when the raw extract landed.
+        tests:
+          - not_null
+
+  - name: fct_aqi_hourly
+    description: Latest available AQI forecast for each forecast hour after deduplicating repeated extracts.
+    columns:
+      - name: record_key
+        tests:
+          - not_null
+          - unique
+      - name: forecast_timestamp_local
+        tests:
+          - not_null
+          - unique

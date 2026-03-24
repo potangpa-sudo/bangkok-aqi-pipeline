@@ -1,0 +1,19 @@
+name: bangkok_aqi_dbt
+version: 1.0.0
+config-version: 2
+
+profile: bangkok_aqi
+
+model-paths: ["models"]
+test-paths: ["tests"]
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  raw_aqi_glob: "{{ env_var('DBT_RAW_AQI_GLOB', '../data/raw/**/*.parquet') }}"
+
+models:
+  bangkok_aqi_dbt:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

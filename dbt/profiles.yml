@@ -1,0 +1,7 @@
+bangkok_aqi:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_DUCKDB_PATH', '../warehouse/bangkok_aqi.duckdb') }}"
+      threads: 4

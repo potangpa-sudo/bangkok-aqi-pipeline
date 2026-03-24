@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bangkok-aqi-pipeline"
+version = "0.1.0"
+description = "Portfolio-grade AQI ingestion and transformation project for Bangkok."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "azure-storage-blob>=12.20,<13",
+    "duckdb>=1.1,<2",
+    "pandas>=2.2,<3",
+    "pyarrow>=20,<21",
+    "python-dotenv>=1.0,<2",
+    "requests>=2.32,<3",
+    "streamlit>=1.43,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "dbt-core>=1.10,<1.11",
+    "dbt-duckdb>=1.9,<1.10",
+    "pytest>=8.3,<9",
+    "ruff>=0.11,<0.12",
+]
+
+[project.scripts]
+bangkok-aqi = "bangkok_aqi.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
