@@ -2,6 +2,8 @@
 
 This project is a portfolio-ready data engineering capstone focused on collecting, modeling, and serving Bangkok air quality data. The repository is structured around a clear split: Airflow orchestrates the pipeline, Python handles ingestion, dbt handles transformation, PostgreSQL stores Airflow's metadata, and DuckDB remains the analytics warehouse.
 
+The current version includes validation at both ingestion time and warehouse build time so malformed API payloads fail fast instead of quietly reaching the dashboard.
+
 ## Architecture
 
 ```mermaid
@@ -38,10 +40,16 @@ flowchart LR
 
 - Airflow owns orchestration and scheduling.
 - Python remains responsible for API integration, retries, configuration, and raw data persistence.
-- dbt owns type casting, column naming, testing, and the final analytics model.
+- dbt owns type casting, column naming, quality assertions, and the final analytics model.
 - PostgreSQL is only used for Airflow's metastore.
 - Raw data is append-only and partitioned by ingestion date so the project keeps history instead of rewriting a single file.
 - DuckDB stays in place because this repo is still single-user analytics, not a multi-user serving layer.
+
+## Data Quality Guardrails
+
+- The extract job validates that the hourly payload contains the expected AQI fields, non-empty rows, parseable timestamps, and at least one populated metric before writing raw parquet.
+- dbt tests assert key metadata fields, accepted source-system values, non-negative particulate metrics, AQI values within expected bounds, and contiguous hourly coverage in the mart.
+- Airflow surfaces payload validation failures as explicit task failures so bad upstream data is visible in orchestration instead of looking like a generic shell error.
 
 ## Quickstart
 
@@ -95,14 +103,15 @@ This first pass sets up a clean project foundation for a capstone:
 
 - local Airflow orchestration with PostgreSQL metadata
 - package-based Python ingestion
-- dbt project scaffold for transformations
+- extract-time payload validation before raw data is persisted
+- dbt transformations with mart-level data quality assertions
 - DuckDB warehouse output under `warehouse/`
 - Streamlit dashboard over the AQI mart
 - repo cleanup and gitignore strategy
-- basic unit tests and developer commands
+- unit tests and developer commands
 
 ## Recommended Next Steps
 
-1. Add data quality monitoring and run alerts.
+1. Add run alerts and monitoring so failed Airflow runs or dbt tests notify you automatically.
 2. Add a second dataset for enrichment to make the capstone less one-dimensional.
 3. Replace the legacy Azure deployment script with a batch-oriented deployment path.
