@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pandas as pd
+import pytest
+
 from bangkok_aqi.config import Settings
-from bangkok_aqi.extract import build_hourly_frame, build_raw_object_path
+from bangkok_aqi.extract import build_hourly_frame, build_raw_object_path, validate_hourly_frame
 
 
 def build_settings() -> Settings:
@@ -52,3 +55,44 @@ def test_build_hourly_frame_adds_metadata_columns() -> None:
             "longitude": 100.5,
         }
     ]
+
+
+def test_validate_hourly_frame_rejects_missing_required_columns() -> None:
+    frame = pd.DataFrame(
+        {
+            "time": ["2026-03-24T00:00"],
+            "pm2_5": [12.3],
+            "pm10": [20.5],
+        }
+    )
+
+    with pytest.raises(ValueError, match="missing required columns: us_aqi"):
+        validate_hourly_frame(frame)
+
+
+def test_validate_hourly_frame_rejects_invalid_timestamps() -> None:
+    frame = pd.DataFrame(
+        {
+            "time": ["not-a-timestamp"],
+            "pm2_5": [12.3],
+            "pm10": [20.5],
+            "us_aqi": [42],
+        }
+    )
+
+    with pytest.raises(ValueError, match="invalid forecast timestamps"):
+        validate_hourly_frame(frame)
+
+
+def test_validate_hourly_frame_rejects_all_null_metrics() -> None:
+    frame = pd.DataFrame(
+        {
+            "time": ["2026-03-24T00:00"],
+            "pm2_5": [None],
+            "pm10": [None],
+            "us_aqi": [None],
+        }
+    )
+
+    with pytest.raises(ValueError, match="does not contain any non-null AQI metrics"):
+        validate_hourly_frame(frame)

@@ -16,6 +16,8 @@ from bangkok_aqi.storage import StorageClient
 
 LOGGER = logging.getLogger(__name__)
 AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
+REQUIRED_HOURLY_COLUMNS = ("time", "pm2_5", "pm10", "us_aqi")
+METRIC_COLUMNS = ("pm2_5", "pm10", "us_aqi")
 
 
 def build_session() -> Session:
@@ -65,6 +67,23 @@ def build_hourly_frame(
     return frame
 
 
+def validate_hourly_frame(frame: pd.DataFrame) -> None:
+    missing_columns = [column for column in REQUIRED_HOURLY_COLUMNS if column not in frame.columns]
+    if missing_columns:
+        formatted_columns = ", ".join(sorted(missing_columns))
+        raise ValueError(f"Hourly payload is missing required columns: {formatted_columns}.")
+
+    if frame.empty:
+        raise ValueError("Hourly payload produced an empty frame.")
+
+    parsed_timestamps = pd.to_datetime(frame["time"], errors="coerce")
+    if parsed_timestamps.isna().any():
+        raise ValueError("Hourly payload contains invalid forecast timestamps.")
+
+    if all(frame[column].isna().all() for column in METRIC_COLUMNS):
+        raise ValueError("Hourly payload does not contain any non-null AQI metrics.")
+
+
 def build_raw_object_path(ingested_at: datetime) -> str:
     return (
         f"raw/ingest_date={ingested_at:%Y-%m-%d}/"
@@ -87,6 +106,7 @@ def run_extract(settings: Settings | None = None) -> str:
 
     payload = fetch_hourly_payload(active_settings)
     frame = build_hourly_frame(payload, ingested_at, active_settings)
+    validate_hourly_frame(frame)
     object_path = build_raw_object_path(ingested_at)
     save_raw_frame(frame, storage, object_path)
 
