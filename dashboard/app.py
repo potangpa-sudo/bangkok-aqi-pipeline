@@ -19,6 +19,23 @@ from bangkok_aqi.dashboard import (
 
 st.set_page_config(page_title="Bangkok AQI Dashboard", layout="wide")
 
+
+def has_metric_data(frame: pd.DataFrame, column: str) -> bool:
+    return column in frame.columns and not frame[column].isna().all()
+
+
+def format_optional_metric(
+    frame: pd.DataFrame,
+    row: pd.Series,
+    column: str,
+    fmt: str,
+    suffix: str = "",
+) -> str:
+    if not has_metric_data(frame, column) or pd.isna(row[column]):
+        return "N/A"
+
+    return f"{row[column]:{fmt}}{suffix}"
+
 st.markdown(
     """
     <style>
@@ -184,13 +201,20 @@ metric_columns = st.columns(4)
 metric_columns[0].metric("Next forecast AQI", f"{hero_aqi_value}", f"{aqi_delta:+.0f}")
 metric_columns[1].metric("Peak AQI in window", f'{int(peak_forecast["us_aqi"])}')
 metric_columns[2].metric("Average PM2.5", f'{filtered["pm25"].mean():.1f}')
-metric_columns[3].metric("Temperature", f'{next_forecast["temperature_c"]:.1f} C')
+metric_columns[3].metric(
+    "Temperature",
+    format_optional_metric(filtered, next_forecast, "temperature_c", ".1f", " C"),
+)
 
 secondary_metric_columns = st.columns(3)
 secondary_metric_columns[0].metric(
-    "Relative humidity", f'{next_forecast["relative_humidity"]:.0f}%'
+    "Relative humidity",
+    format_optional_metric(filtered, next_forecast, "relative_humidity", ".0f", "%"),
 )
-secondary_metric_columns[1].metric("Wind speed", f'{next_forecast["wind_speed_kph"]:.1f} km/h')
+secondary_metric_columns[1].metric(
+    "Wind speed",
+    format_optional_metric(filtered, next_forecast, "wind_speed_kph", ".1f", " km/h"),
+)
 secondary_metric_columns[2].metric(
     "Last ingestion (UTC)",
     filtered["last_ingested_at_utc"].max().strftime("%Y-%m-%d %H:%M"),

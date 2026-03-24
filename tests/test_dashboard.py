@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
+import duckdb
 import pandas as pd
 
-from bangkok_aqi.dashboard import build_daily_summary, build_metric_options, classify_aqi
+from bangkok_aqi.dashboard import (
+    build_daily_summary,
+    build_metric_options,
+    classify_aqi,
+    load_hourly_aqi,
+)
 
 
 def test_classify_aqi_returns_expected_band() -> None:
@@ -54,7 +61,14 @@ def test_build_daily_summary_rolls_up_hourly_forecasts() -> None:
 
 def test_build_metric_options_includes_weather_series() -> None:
     hourly = pd.DataFrame(
-        columns=["us_aqi", "pm25", "pm10", "temperature_c", "relative_humidity", "wind_speed_kph"]
+        {
+            "us_aqi": [42],
+            "pm25": [12.3],
+            "pm10": [20.5],
+            "temperature_c": [31.5],
+            "relative_humidity": [63.0],
+            "wind_speed_kph": [12.1],
+        }
     )
 
     assert build_metric_options(hourly) == {
@@ -65,3 +79,42 @@ def test_build_metric_options_includes_weather_series() -> None:
         "relative_humidity": "Relative Humidity (%)",
         "wind_speed_kph": "Wind Speed (km/h)",
     }
+
+
+def test_load_hourly_aqi_backfills_missing_weather_columns(tmp_path: Path) -> None:
+    duckdb_path = tmp_path / "legacy_dashboard.duckdb"
+
+    with duckdb.connect(str(duckdb_path)) as connection:
+        connection.execute(
+            """
+            create table fct_aqi_hourly as
+            select
+                timestamp '2026-03-24 00:00:00' as forecast_timestamp_local,
+                date '2026-03-24' as forecast_date_local,
+                28.2::double as pm25,
+                40.1::double as pm10,
+                70::integer as us_aqi,
+                timestamp '2026-03-23 17:00:00' as last_ingested_at_utc,
+                'open-meteo' as source_system,
+                13.75::double as latitude,
+                100.5::double as longitude
+            """
+        )
+
+    hourly = load_hourly_aqi(duckdb_path)
+
+    assert list(hourly.columns) == [
+        "forecast_timestamp_local",
+        "forecast_date_local",
+        "pm25",
+        "pm10",
+        "us_aqi",
+        "temperature_c",
+        "relative_humidity",
+        "wind_speed_kph",
+        "last_ingested_at_utc",
+        "source_system",
+        "latitude",
+        "longitude",
+    ]
+    assert hourly[["temperature_c", "relative_humidity", "wind_speed_kph"]].isna().all().all()

@@ -7,6 +7,8 @@ from typing import Any
 import duckdb
 import pandas as pd
 
+WEATHER_COLUMNS = ("temperature_c", "relative_humidity", "wind_speed_kph")
+
 
 @dataclass(frozen=True)
 class AQIBand:
@@ -98,17 +100,22 @@ def warehouse_has_mart(duckdb_path: Path) -> bool:
 
 def load_hourly_aqi(duckdb_path: Path) -> pd.DataFrame:
     with duckdb.connect(str(duckdb_path), read_only=True) as connection:
+        available_columns = {
+            row[1] for row in connection.execute("pragma table_info('fct_aqi_hourly')").fetchall()
+        }
+        optional_weather_select = [
+            column if column in available_columns else f"cast(null as double) as {column}"
+            for column in WEATHER_COLUMNS
+        ]
         hourly = connection.execute(
-            """
+            f"""
             select
                 forecast_timestamp_local,
                 forecast_date_local,
                 pm25,
                 pm10,
                 us_aqi,
-                temperature_c,
-                relative_humidity,
-                wind_speed_kph,
+                {", ".join(optional_weather_select)},
                 last_ingested_at_utc,
                 source_system,
                 latitude,
@@ -171,11 +178,11 @@ def build_metric_options(hourly: pd.DataFrame) -> dict[str, str]:
         options["pm25"] = "PM2.5"
     if "pm10" in hourly.columns:
         options["pm10"] = "PM10"
-    if "temperature_c" in hourly.columns:
+    if "temperature_c" in hourly.columns and not hourly["temperature_c"].isna().all():
         options["temperature_c"] = "Temperature (C)"
-    if "relative_humidity" in hourly.columns:
+    if "relative_humidity" in hourly.columns and not hourly["relative_humidity"].isna().all():
         options["relative_humidity"] = "Relative Humidity (%)"
-    if "wind_speed_kph" in hourly.columns:
+    if "wind_speed_kph" in hourly.columns and not hourly["wind_speed_kph"].isna().all():
         options["wind_speed_kph"] = "Wind Speed (km/h)"
 
     return options
@@ -199,7 +206,7 @@ def build_status_rows(hourly: pd.DataFrame) -> list[dict[str, Any]]:
     latest_row = hourly.iloc[0]
     peak_row = hourly.loc[hourly["us_aqi"].idxmax()]
 
-    return [
+    status_rows = [
         {"label": "Source system", "value": str(latest_row["source_system"])},
         {
             "label": "Coordinates",
@@ -210,6 +217,15 @@ def build_status_rows(hourly: pd.DataFrame) -> list[dict[str, Any]]:
             "value": peak_row["forecast_timestamp_local"].strftime("%Y-%m-%d %H:%M"),
         },
         {"label": "Peak AQI band", "value": classify_aqi(peak_row["us_aqi"]).label},
-        {"label": "Temperature", "value": f'{latest_row["temperature_c"]:.1f} C'},
-        {"label": "Wind speed", "value": f'{latest_row["wind_speed_kph"]:.1f} km/h'},
     ]
+
+    if "temperature_c" in hourly.columns and not pd.isna(latest_row["temperature_c"]):
+        status_rows.append(
+            {"label": "Temperature", "value": f'{latest_row["temperature_c"]:.1f} C'}
+        )
+    if "wind_speed_kph" in hourly.columns and not pd.isna(latest_row["wind_speed_kph"]):
+        status_rows.append(
+            {"label": "Wind speed", "value": f'{latest_row["wind_speed_kph"]:.1f} km/h'}
+        )
+
+    return status_rows
