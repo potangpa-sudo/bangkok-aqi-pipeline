@@ -8,6 +8,7 @@ import pandas as pd
 
 from bangkok_aqi.dashboard import (
     build_daily_summary,
+    build_map_frame,
     build_metric_options,
     classify_aqi,
     load_hourly_aqi,
@@ -118,3 +119,19 @@ def test_load_hourly_aqi_backfills_missing_weather_columns(tmp_path: Path) -> No
         "longitude",
     ]
     assert hourly[["temperature_c", "relative_humidity", "wind_speed_kph"]].isna().all().all()
+
+
+def test_build_map_frame_uses_latest_forecast_coordinates() -> None:
+    hourly = pd.DataFrame(
+        {
+            "latitude": [13.75, 13.75],
+            "longitude": [100.5, 100.5],
+            "us_aqi": [58, 72],
+        }
+    )
+
+    map_frame = build_map_frame(hourly)
+
+    assert map_frame.to_dict(orient="records") == [
+        {"latitude": 13.75, "longitude": 100.5, "us_aqi": 58}
+    ]

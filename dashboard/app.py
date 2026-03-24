@@ -4,11 +4,13 @@ from pathlib import Path
 
 import altair as alt
 import pandas as pd
+import pydeck as pdk
 import streamlit as st
 
 from bangkok_aqi.config import get_settings
 from bangkok_aqi.dashboard import (
     build_daily_summary,
+    build_map_frame,
     build_metric_options,
     build_status_rows,
     classify_aqi,
@@ -105,7 +107,8 @@ duckdb_path = settings.duckdb_path
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def get_hourly_data(path: str) -> pd.DataFrame:
+def get_hourly_data(path: str, warehouse_mtime_ns: int) -> pd.DataFrame:
+    del warehouse_mtime_ns
     return load_hourly_aqi(Path(path))
 
 
@@ -134,7 +137,7 @@ if not warehouse_has_mart(duckdb_path):
     )
     st.stop()
 
-hourly = get_hourly_data(str(duckdb_path))
+hourly = get_hourly_data(str(duckdb_path), duckdb_path.stat().st_mtime_ns)
 
 if hourly.empty:
     st.warning("The mart exists but contains no rows yet.")
@@ -232,6 +235,62 @@ for column, status in zip(status_columns, status_rows, strict=False):
         """,
         unsafe_allow_html=True,
     )
+
+map_data = build_map_frame(filtered)
+map_latitude = map_data.iloc[0]["latitude"]
+map_longitude = map_data.iloc[0]["longitude"]
+map_tooltip_text = (
+    "Bangkok forecast point\n"
+    f"AQI: {hero_aqi_value}\n"
+    f"Coordinates: {map_latitude:.2f}, {map_longitude:.2f}"
+)
+map_columns = st.columns((1.25, 0.95))
+map_columns[0].subheader("Forecast Location")
+map_columns[0].pydeck_chart(
+    pdk.Deck(
+        map_style="mapbox://styles/mapbox/light-v11",
+        initial_view_state=pdk.ViewState(
+            latitude=float(map_latitude),
+            longitude=float(map_longitude),
+            zoom=10,
+            pitch=35,
+        ),
+        layers=[
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=map_data,
+                get_position="[longitude, latitude]",
+                get_radius=7000,
+                get_fill_color=[201, 106, 22, 180],
+                get_line_color=[27, 36, 48, 220],
+                line_width_min_pixels=2,
+                pickable=True,
+            )
+        ],
+        tooltip={"text": map_tooltip_text},
+    ),
+    use_container_width=True,
+)
+map_columns[1].subheader("Location Context")
+map_columns[1].markdown(
+    f"""
+    <div class="status-card">
+        <div class="status-label">Forecast Point</div>
+        <div class="status-value">Bangkok city reference</div>
+    </div>
+    <div style="height: 0.8rem;"></div>
+    <div class="status-card">
+        <div class="status-label">Coordinates</div>
+        <div class="status-value">{map_latitude:.2f}, {map_longitude:.2f}</div>
+    </div>
+    <div style="height: 0.8rem;"></div>
+    <div class="status-card">
+        <div class="status-label">AQI At Forecast Point</div>
+        <div class="status-value">{hero_aqi_value} / {aqi_band.label}</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 aqi_chart = (
     alt.Chart(filtered)

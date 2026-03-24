@@ -229,3 +229,13 @@ def build_status_rows(hourly: pd.DataFrame) -> list[dict[str, Any]]:
         )
 
     return status_rows
+
+
+def build_map_frame(hourly: pd.DataFrame) -> pd.DataFrame:
+    if hourly.empty:
+        return pd.DataFrame(columns=["latitude", "longitude", "us_aqi"])
+
+    latest_row = hourly.iloc[[0]][["latitude", "longitude", "us_aqi"]].copy()
+    latest_row["latitude"] = latest_row["latitude"].astype(float)
+    latest_row["longitude"] = latest_row["longitude"].astype(float)
+    return latest_row
