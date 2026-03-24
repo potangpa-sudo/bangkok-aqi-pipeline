@@ -1,2 +1,0 @@
-[console_scripts]
-bangkok-aqi = bangkok_aqi.cli:main

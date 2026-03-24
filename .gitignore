@@ -6,6 +6,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.pyc
+*.egg-info/
 
 data/raw/*
 !data/raw/.gitkeep
@@ -19,6 +20,7 @@ warehouse/*
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
+dbt/.user.yml
 
 airflow/logs/*
 !airflow/logs/.gitkeep
